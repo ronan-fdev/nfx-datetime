@@ -1,0 +1,179 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., 1.0.0). If empty, uses current commit.'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+
+  #============================================================================
+  # Build Linux Packages (GCC)
+  #============================================================================
+
+  build-linux-gcc:
+    name: Linux GCC Packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: linux-gcc-release
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build rpm ccache
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Clean Doxygen cache
+        run: rm -rf build/doc
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=g++-14 \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DNFX_DATETIME_BUILD_STATIC=ON \
+            -DNFX_DATETIME_BUILD_SHARED=ON \
+            -DNFX_DATETIME_BUILD_TESTS=OFF \
+            -DNFX_DATETIME_BUILD_SAMPLES=OFF \
+            -DNFX_DATETIME_BUILD_BENCHMARKS=OFF \
+            -DNFX_DATETIME_BUILD_DOCUMENTATION=ON \
+            -DNFX_DATETIME_INSTALL_PROJECT=ON \
+            -DNFX_DATETIME_PACKAGE_ARCHIVE=ON \
+            -DNFX_DATETIME_PACKAGE_DEB=ON \
+            -DNFX_DATETIME_PACKAGE_RPM=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Generate packages
+        run: |
+          cd build
+          cpack -C Release
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            build/packages/*.deb
+            build/packages/*.rpm
+            build/packages/*.tar.gz
+
+  #============================================================================
+  # Build Windows Packages (MSVC)
+  #============================================================================
+
+  build-windows-msvc:
+    name: Windows MSVC Packages
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: windows-msvc-release
+          variant: sccache
+
+      - name: Install dependencies
+        run: choco install doxygen.install graphviz wixtoolset ninja -y
+
+      - name: Verify WiX installation
+        run: |
+          where.exe candle
+          where.exe light
+          candle -?
+
+      - name: Clean build directory
+        run: |
+          if (Test-Path build) { Remove-Item -Recurse -Force build }
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_C_COMPILER=cl `
+            -DCMAKE_CXX_COMPILER=cl `
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache `
+            -DCPACK_SYSTEM_NAME=MSVC `
+            -DNFX_DATETIME_BUILD_STATIC=ON `
+            -DNFX_DATETIME_BUILD_SHARED=ON `
+            -DNFX_DATETIME_BUILD_TESTS=OFF `
+            -DNFX_DATETIME_BUILD_SAMPLES=OFF `
+            -DNFX_DATETIME_BUILD_BENCHMARKS=OFF `
+            -DNFX_DATETIME_BUILD_DOCUMENTATION=ON `
+            -DNFX_DATETIME_INSTALL_PROJECT=ON `
+            -DNFX_DATETIME_PACKAGE_ARCHIVE=ON `
+            -DNFX_DATETIME_PACKAGE_WIX=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Generate packages
+        run: |
+          cd build
+          cpack -C Release
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            build/packages/*.msi
+            build/packages/*.exe
+            build/packages/*MSVC*.zip
+          overwrite_files: true
+
+  #============================================================================
+  # Build Source Package
+  #============================================================================
+
+  build-source:
+    name: Source Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DNFX_DATETIME_PACKAGE_SOURCE=ON
+
+      - name: Generate source package
+        run: |
+          cd build
+          cpack --config CPackSourceConfig.cmake
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: build/packages/*Source*
