@@ -14,11 +14,49 @@ permissions:
 jobs:
 
   #============================================================================
+  # Create Release First
+  #============================================================================
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Validate tag input
+        run: |
+          if [ -z "${{ github.event.inputs.tag }}" ]; then
+            echo "::error::Tag is required for releases. Please provide a version tag (e.g., 1.0.1)"
+            exit 1
+          fi
+          echo "Creating release for tag: ${{ github.event.inputs.tag }}"
+
+      - name: Verify tag format
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          if [[ ! "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "::warning::Tag '$TAG' doesn't follow semantic versioning (X.Y.Z)"
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          draft: true
+          prerelease: false
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+
+  #============================================================================
   # Build Linux Packages (GCC)
   #============================================================================
 
   build-linux-gcc:
     name: Linux GCC Packages
+    needs: create-release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -36,9 +74,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake ninja-build rpm ccache
           sudo apt-get install -y doxygen graphviz
-
-      - name: Clean Doxygen cache
-        run: rm -rf build/doc
+          
+      - name: Install GCC-14
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install -y g++-14
+          g++-14 --version
 
       - name: Configure CMake
         run: |
@@ -65,14 +107,43 @@ jobs:
           cd build
           cpack -C Release
 
+      - name: Verify packages created
+        run: |
+          echo "Packages created:"
+          ls -lh build/packages/
+          
+          # Verify expected package types exist
+          PACKAGE_COUNT=$(ls -1 build/packages/*.{deb,rpm,tar.gz} 2>/dev/null | wc -l)
+          if [ "$PACKAGE_COUNT" -eq 0 ]; then
+            echo "::error::No packages were created!"
+            exit 1
+          fi
+          echo "Found $PACKAGE_COUNT package(s)"
+
+      - name: Generate checksums
+        run: |
+          cd build/packages
+          sha256sum *.deb *.rpm *.tar.gz > SHA256SUMS.txt 2>/dev/null || true
+          cat SHA256SUMS.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-gcc-packages
+          path: build/packages/
+          retention-days: 7
+
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ github.event.inputs.tag }}
+          draft: true
           files: |
             build/packages/*.deb
             build/packages/*.rpm
             build/packages/*.tar.gz
+            build/packages/SHA256SUMS.txt
 
   #============================================================================
   # Build Windows Packages (MSVC)
@@ -80,6 +151,7 @@ jobs:
 
   build-windows-msvc:
     name: Windows MSVC Packages
+    needs: create-release
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -105,16 +177,10 @@ jobs:
           where.exe light
           candle -?
 
-      - name: Clean build directory
-        run: |
-          if (Test-Path build) { Remove-Item -Recurse -Force build }
-
       - name: Configure CMake
         run: |
           cmake -B build -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_C_COMPILER=cl `
-            -DCMAKE_CXX_COMPILER=cl `
             -DCMAKE_CXX_COMPILER_LAUNCHER=sccache `
             -DCPACK_SYSTEM_NAME=MSVC `
             -DNFX_DATETIME_BUILD_STATIC=ON `
@@ -135,15 +201,45 @@ jobs:
           cd build
           cpack -C Release
 
+      - name: Verify packages created
+        run: |
+          Write-Host "Packages created:"
+          Get-ChildItem build/packages/ | Format-Table Name, Length
+          
+          $packageCount = (Get-ChildItem build/packages/ -Include *.msi,*.zip -Recurse).Count
+          if ($packageCount -eq 0) {
+            Write-Host "::error::No packages were created!"
+            exit 1
+          }
+          Write-Host "Found $packageCount package(s)"
+
+      - name: Generate checksums
+        run: |
+          cd build/packages
+          Get-ChildItem -Include *.msi,*.zip -Recurse | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            "$hash  $($_.Name)" | Out-File -Append SHA256SUMS.txt -Encoding ASCII
+          }
+          Get-Content SHA256SUMS.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-msvc-packages
+          path: build/packages/
+          retention-days: 7
+
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ github.event.inputs.tag }}
+          draft: true
           files: |
             build/packages/*.msi
             build/packages/*.exe
             build/packages/*MSVC*.zip
-          overwrite_files: true
+            build/packages/SHA256SUMS.txt
 
   #============================================================================
   # Build Source Package
@@ -151,6 +247,7 @@ jobs:
 
   build-source:
     name: Source Package
+    needs: create-release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -172,8 +269,37 @@ jobs:
           cd build
           cpack --config CPackSourceConfig.cmake
 
+      - name: Verify source package created
+        run: |
+          echo "Source packages created:"
+          ls -lh build/packages/
+          
+          PACKAGE_COUNT=$(ls -1 build/packages/*Source* 2>/dev/null | wc -l)
+          if [ "$PACKAGE_COUNT" -eq 0 ]; then
+            echo "::error::No source packages were created!"
+            exit 1
+          fi
+          echo "Found $PACKAGE_COUNT source package(s)"
+
+      - name: Generate checksums
+        run: |
+          cd build/packages
+          sha256sum *Source* > SHA256SUMS-source.txt 2>/dev/null || true
+          cat SHA256SUMS-source.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-packages
+          path: build/packages/
+          retention-days: 7
+
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          files: build/packages/*Source*
+          tag_name: ${{ github.event.inputs.tag }}
+          draft: true
+          files: |
+            build/packages/*Source*
+            build/packages/SHA256SUMS-source.txt

@@ -31,6 +31,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - NIL
 
+## [1.0.1] - 2025-10-30
+
+### Changed
+
+- Refactored directory variable naming from `NFX_DATETIME_ROOT_DIR` to `NFX_DATETIME_DIR` for consistency
+
+- **GitHub Release Workflow**
+  - Refactored release workflow to create GitHub release before building packages
+  - All build jobs now depend on release creation job
+  - Added tag validation and semantic versioning verification
+  - Releases are now created as drafts for review before publishing
+  - Added package verification steps to ensure artifacts are created
+  - Added SHA256 checksum generation for all packages
+  - Added build artifact uploads for debugging
+  - Installed GCC-14 for Linux builds
+
 ## [1.0.0] - 2025-10-26 - Initial Release
 
 ### Added
