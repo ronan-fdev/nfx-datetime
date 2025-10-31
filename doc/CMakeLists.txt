@@ -54,7 +54,7 @@ if(Doxygen_FOUND)
 	set(DOXYGEN_QT_AUTOBRIEF             "NO")
 	set(DOXYGEN_MULTILINE_CPP_IS_BRIEF   "NO")
 
-	# --- Project ---
+	# --- Output and File Settings ---
 	set(DOXYGEN_RESOLVE_UNNAMED_PARAMS   "YES")
 	set(DOXYGEN_INLINE_INFO              "YES")
 	set(DOXYGEN_SORT_MEMBER_DOCS         "YES")

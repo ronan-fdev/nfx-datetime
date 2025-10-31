@@ -11,22 +11,18 @@ set(PRIVATE_HEADERS)
 set(PRIVATE_SOURCES)
 
 list(APPEND PUBLIC_HEADERS
-	# --- Time handling headers ---
 	${NFX_DATETIME_INCLUDE_DIR}/nfx/datetime/DateTime.h
 	${NFX_DATETIME_INCLUDE_DIR}/nfx/datetime/DateTimeOffset.h
 	${NFX_DATETIME_INCLUDE_DIR}/nfx/datetime/TimeSpan.h
 
-	# --- Time handling implementations ---
 	${NFX_DATETIME_INCLUDE_DIR}/nfx/detail/datetime/DateTime.inl
 	${NFX_DATETIME_INCLUDE_DIR}/nfx/detail/datetime/DateTimeOffset.inl
 	${NFX_DATETIME_INCLUDE_DIR}/nfx/detail/datetime/TimeSpan.inl
 )
 list(APPEND PRIVATE_HEADERS
-	# --- Time handling private headers files ---
 	${NFX_DATETIME_SOURCE_DIR}/Constants.h
 )
 list(APPEND PRIVATE_SOURCES
-	# --- Time handling source files ---
 	${NFX_DATETIME_SOURCE_DIR}/DateTime.cpp
 	${NFX_DATETIME_SOURCE_DIR}/DateTimeOffset.cpp
 	${NFX_DATETIME_SOURCE_DIR}/TimeSpan.cpp

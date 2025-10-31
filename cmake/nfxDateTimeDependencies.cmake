@@ -28,19 +28,12 @@ endif()
 set(FETCHCONTENT_QUIET OFF)
 
 #----------------------------
-# Dependency version requirements
-#----------------------------
-
-set(NFX_DATETIME_GTEST_MIN_VERSION          "1.12.1")
-set(NFX_DATETIME_BENCHMARK_MIN_VERSION      "1.9.4" )
-
-#----------------------------
 # Dependency declarations
 #----------------------------
 
 # --- Google test ---
 if(NFX_DATETIME_BUILD_TESTS)
-	find_package(GTest ${NFX_DATETIME_GTEST_MIN_VERSION} QUIET)
+	find_package(GTest QUIET)
 	
 	if(NOT GTest_FOUND)
 		message(STATUS "GoogleTest not found on system, using FetchContent")
@@ -62,7 +55,7 @@ endif()
 
 # --- Google benchmark ---
 if(NFX_DATETIME_BUILD_BENCHMARKS)
-	find_package(benchmark ${NFX_DATETIME_BENCHMARK_MIN_VERSION} QUIET)
+	find_package(benchmark QUIET)
 	
 	if(NOT benchmark_FOUND)
 		message(STATUS "Google Benchmark not found on system, using FetchContent")
