@@ -217,8 +217,9 @@ if(Doxygen_FOUND)
 	# --- Documentation Target Definition ---
 	doxygen_add_docs(documentation
 		${NFX_DATETIME_INCLUDE_DIR}/nfx
-		${NFX_DATETIME_DIR}/README.md
 		${NFX_DATETIME_DIR}/CHANGELOG.md
+		${NFX_DATETIME_DIR}/README.md
+		${NFX_DATETIME_DIR}/TODO.md
 		${NFX_DATETIME_DIR}/benchmark/README.md
 		${NFX_DATETIME_LICENSE_FILE}
 		ALL
