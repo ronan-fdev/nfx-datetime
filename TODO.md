@@ -38,4 +38,8 @@ Project roadmap and task tracking for the nfx-datetime library.
 
 ### Done ✓
 
-- NIL
+#### v1.0.1 (2025-10-30)
+
+- [x] Fixed CMake configuration bug (duplicate `NFX_DATETIME_INCLUDE_DIR` → `NFX_DATETIME_SOURCE_DIR`)
+- [x] Refactored CMake directory variables (`NFX_DATETIME_ROOT_DIR` → `NFX_DATETIME_DIR`)
+- [x] Enhanced GitHub release workflow with draft releases and checksums
