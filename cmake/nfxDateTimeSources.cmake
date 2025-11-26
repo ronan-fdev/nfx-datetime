@@ -3,12 +3,12 @@
 #==============================================================================
 
 #----------------------------------------------
-# Conditional headers and sources
+# Source files
 #----------------------------------------------
 
-set(PRIVATE_SOURCES)
+set(private_sources)
 
-list(APPEND PRIVATE_SOURCES
+list(APPEND private_sources
 	${NFX_DATETIME_SOURCE_DIR}/DateTime.cpp
 	${NFX_DATETIME_SOURCE_DIR}/DateTimeOffset.cpp
 	${NFX_DATETIME_SOURCE_DIR}/TimeSpan.cpp

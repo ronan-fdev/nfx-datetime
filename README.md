@@ -45,7 +45,7 @@ nfx-datetime is a modern C++20 library providing high-precision temporal operati
 
 ### ⚡ Performance Optimized
 
-- Sub-nanosecond arithmetic operations
+- High-precision arithmetic operations (100-nanosecond resolution)
 - Highly optimized parsing
 - Efficient string formatting
 - Zero-cost abstractions with constexpr support
@@ -174,7 +174,7 @@ The complete API documentation is available online at:
 cmake .. -DCMAKE_BUILD_TYPE=Release -DNFX_DATETIME_BUILD_DOCUMENTATION=ON
 
 # Build the documentation
-cmake --build . --target documentation
+cmake --build . --target nfx-datetime-documentation
 ```
 
 #### Requirements
@@ -495,9 +495,11 @@ See the [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes, new feat
 
 This project is licensed under the MIT License.
 
-## Dependencies
+## Acknowledgments
 
-### Runtime Dependencies
+- Inspired by .NET's DateTime API design
+
+## Dependencies
 
 ### Development Dependencies
 
