@@ -96,6 +96,13 @@ if(UNIX AND NOT APPLE)
 	find_program(RPM_CMD rpm)
 endif()
 
+if(WIN32)
+	if(NOT WIX_CANDLE OR NOT WIX_LIGHT)
+		find_program(WIX_CANDLE NAMES candle.exe candle HINTS "$ENV{WIX}/bin")
+		find_program(WIX_LIGHT NAMES light.exe light HINTS "$ENV{WIX}/bin")
+	endif()
+endif()
+
 # --- Generators ---
 if(NOT DEFINED CPACK_GENERATOR)
 	set(CPACK_GENERATOR "")
@@ -129,11 +136,6 @@ if(NOT DEFINED CPACK_GENERATOR)
 	
 	# --- WiX packages ---
 	if(NFX_DATETIME_PACKAGE_WIX AND WIN32)
-		if(NOT WIX_CANDLE OR NOT WIX_LIGHT)
-			find_program(WIX_CANDLE NAMES candle.exe candle HINTS "$ENV{WIX}/bin")
-			find_program(WIX_LIGHT NAMES light.exe light HINTS "$ENV{WIX}/bin")
-		endif()
-		
 		if(WIX_CANDLE AND WIX_LIGHT)
 			set(CPACK_GENERATOR "${CPACK_GENERATOR};WIX")
 			message(STATUS "WiX found: ${WIX_CANDLE} - Windows MSI installer generation enabled")
@@ -196,12 +198,7 @@ if("DEB" IN_LIST CPACK_GENERATOR AND UNIX AND NOT APPLE)
 	set(CPACK_DEBIAN_COMPRESSION_TYPE      "xz")
 	set(CPACK_DEBIAN_PACKAGE_PRIORITY      "optional")
 	set(CPACK_DEBIAN_PACKAGE_HOMEPAGE      ${CPACK_PACKAGE_HOMEPAGE_URL})
-	
-	# --- Core runtime dependencies  ---
-	set(deb_depends "libc6, libstdc++6, libgcc-s1")
-	
-	set(CPACK_DEBIAN_PACKAGE_DEPENDS "${deb_depends}")
-	message(STATUS "DEB dependencies: ${CPACK_DEBIAN_PACKAGE_DEPENDS}")
+	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS     ON)
 endif()
 
 # --- RPM package settings ---
@@ -218,12 +215,7 @@ if("RPM" IN_LIST CPACK_GENERATOR AND UNIX AND NOT APPLE)
 	set(CPACK_RPM_PACKAGE_VENDOR        ${CPACK_PACKAGE_VENDOR})
 	set(CPACK_RPM_PACKAGE_DESCRIPTION   ${PROJECT_DESCRIPTION})
 	set(CPACK_RPM_PACKAGE_URL           ${CPACK_PACKAGE_HOMEPAGE_URL})
-
-	# --- Core runtime dependencies ---
-	set(rpm_requires "glibc, libstdc++")
-	
-	set(CPACK_RPM_PACKAGE_REQUIRES "${rpm_requires}")
-	message(STATUS "RPM dependencies: ${CPACK_RPM_PACKAGE_REQUIRES}")
+	set(CPACK_RPM_PACKAGE_AUTOREQ       ON)
 endif()
 
 #----------------------------------------------

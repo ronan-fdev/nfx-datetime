@@ -54,7 +54,7 @@ nfx-datetime is a modern C++20 library providing high-precision temporal operati
 ### 🌍 Cross-Platform Support
 
 - **Platforms**: Linux, Windows
-- **Architecture**: x86-64 (x86 SIMD features: SSE4.2, AVX, AVX2)
+- **Architecture**: x86-64
 - **Compilers**: GCC 14+, Clang 18+, MSVC 2022+
 - Thread-safe operations
 - Consistent behavior across platforms
